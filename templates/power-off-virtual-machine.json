@@ -1,0 +1,222 @@
+{
+    "id": "Power_off_virtual_machine",
+    "title": "Power off virtual machine",
+    "description": "Power off virtual machine.",
+    "iconType": "ScheduledTask",
+    "skuType": "Consumption",
+    "data": {
+        "definition": {
+            "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+            "contentVersion": "1.0.0.0",
+            "parameters": {
+                "$connections": {
+                    "defaultValue": {},
+                    "type": "Object"
+                }
+            },
+            "triggers": {
+                "Recurrence": {
+                    "recurrence": {
+                        "frequency": "@parameters('Frequency')",
+                        "interval": "@parameters('Interval')",
+                        "startTime": "@formatDateTime(parameters('stopTime'), 'yyyy-MM-ddTHH:mm:ss')",
+                        "timeZone": "@parameters('TimeZone')"
+                    },
+                    "evaluatedRecurrence": {
+                        "frequency": "Week",
+                        "interval": 1,
+                        "startTime": "2025-08-20T00:00:00",
+                        "timeZone": "Pacific Standard Time"
+                    },
+                    "type": "Recurrence"
+                }
+            },
+            "actions": {
+                "Notify_on_failure": {
+                    "actions": {
+                        "Send_an_email_on_failure": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "Body": "<p><strong>FAILED<br>\n<br>\n</strong>Status: Failed</p>",
+                                    "Subject": "Your automation task failed to stop virtual machine @{parameters('ResourceVM')}",
+                                    "To": "@parameters('EmailID')"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['office365']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/Mail"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Power_off_virtual_machine": [
+                            "Failed",
+                            "Skipped",
+                            "TimedOut"
+                        ]
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "equals": [
+                                    "@parameters('Notify')",
+                                    true
+                                ]
+                            }
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Notify_on_success": {
+                    "actions": {
+                        "Send_an_email_on_success": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "Body": "<p><strong>SUCCESS<br>\n<br>\n</strong>Status: Succeeded</p>",
+                                    "Subject": "Your automation task sucessfully stopped virtual machine @{parameters('ResourceVM')}",
+                                    "To": "@parameters('EmailID')"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['office365']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/Mail"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Power_off_virtual_machine": [
+                            "Succeeded"
+                        ]
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "equals": [
+                                    "@parameters('Notify')",
+                                    true
+                                ]
+                            }
+                        ]
+                    },
+                    "type": "If"
+                },
+                "Power_off_virtual_machine": {
+                    "runAfter": {},
+                    "type": "ApiConnection",
+                    "inputs": {
+                        "host": {
+                            "connection": {
+                                "name": "@parameters('$connections')['azurevm']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/subscriptions/@{encodeURIComponent(parameters('SubscriptionId'))}/resourcegroups/@{encodeURIComponent(parameters('ResourceGroup'))}/providers/Microsoft.Compute/virtualMachines/@{encodeURIComponent(parameters('ResourceVM'))}/powerOff",
+                        "queries": {
+                            "api-version": "2019-12-01"
+                        }
+                    }
+                }
+            },
+            "outputs": {}
+        },
+        "parameters": {
+            "ResourceGroup": {
+                "type": "String",
+                "defaultValue": "LogicApp0806",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "ResourceVM": {
+                "type": "String",
+                "defaultValue": "MyVirtualMachine0819",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "SubscriptionId": {
+                "type": "String",
+                "defaultValue": "bf85dd34-7e9b-4dab-b430-37bd9a2fcaad",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "StopTime": {
+                "type": "String",
+                "defaultValue": "2025-08-20T00:00:00.000",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "TimeZone": {
+                "type": "String",
+                "defaultValue": "Pacific Standard Time",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "Interval": {
+                "type": "Int",
+                "defaultValue": 1,
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "Frequency": {
+                "type": "String",
+                "defaultValue": "Week",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "Notify": {
+                "type": "Bool",
+                "defaultValue": false,
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            },
+            "EmailID": {
+                "type": "String",
+                "defaultValue": "v-tishe@microsoft.com",
+                "metadata": {
+                    "format": "",
+                    "required": false
+                }
+            }
+        },
+        "connections": {
+            "azurevm": {
+                "id": "/subscriptions/0000-0000/providers/Microsoft.Web/locations/westus2/managedApis/azurevm",
+                "connectionId": "",
+                "connectionName": ""
+            },
+            "office365": {
+                "id": "/subscriptions/0000-0000/providers/Microsoft.Web/locations/westus2/managedApis/office365",
+                "connectionId": "",
+                "connectionName": ""
+            }
+        }
+    },
+    "supportedResources": [
+        "Microsoft.compute"
+    ]
+}
