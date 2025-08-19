@@ -1,4 +1,5 @@
 [
+    "power-off-virtual-machine.json"
     "send-monthly-cost.json",
     "notify-when-resource-deleted.json",
     "start-vm-new.json",
